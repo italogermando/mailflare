@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Pulls the latest upstream Mailflare into this fork, keeping local changes,
+# then deploys. Do NOT use the dashboard "Update" button: its workflow
+# replaces the whole repo with upstream and drops this fork's changes.
+#
+#   ./update            # merge upstream + deploy
+#   ./update --no-deploy
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+git remote get-url upstream >/dev/null 2>&1 || git remote add upstream https://github.com/hieunc229/mailflare.git
+git fetch --no-tags upstream
+
+behind=$(git rev-list --count HEAD..upstream/main)
+if [ "$behind" -eq 0 ]; then
+	echo "Already up to date with upstream."
+	exit 0
+fi
+echo "Upstream has $behind new commit(s):"
+git log --oneline HEAD..upstream/main | head -20
+
+if ! git merge --no-edit upstream/main; then
+	echo
+	echo "Merge conflict. Resolve the files above (keep this fork's database_id and SELF_HOSTED_UNLOCKED),"
+	echo "then: git add -A && git commit && ./update"
+	exit 1
+fi
+
+npm install --no-audit --no-fund
+[ "${1:-}" = "--no-deploy" ] || ./cf npm run deploy
+echo
+echo "Done. Open Admin > Overview to apply any pending database migrations."
