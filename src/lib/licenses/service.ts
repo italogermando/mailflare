@@ -33,7 +33,25 @@ async function getOrCreateLicenseSettings(env: CloudflareEnv) {
 	return settings;
 }
 
+// Personal fork: every installation is treated as an active Team license
+// (unlimited seats, shared mailboxes, branding, forwarding). Kept to this one
+// function so upstream merges stay a single-hunk conflict at most.
+const SELF_HOSTED_UNLOCKED = true;
+
 function toLicenseStatus(settings: typeof licenseSettings.$inferSelect): LicenseStatus {
+	if (SELF_HOSTED_UNLOCKED) {
+		return {
+			plan: "team",
+			state: "active",
+			features: parseFeatures(settings.features),
+			seatLimit: null,
+			instanceId: settings.instanceId,
+			instanceUrl: settings.instanceUrl,
+			active: true,
+			activatedAt: settings.activatedAt,
+			validatedAt: settings.validatedAt,
+		};
+	}
 	const active = settings.state === "active" && (settings.plan === "pro" || settings.plan === "team");
 	return {
 		plan: active ? settings.plan : "community",
