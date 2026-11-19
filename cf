@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Runs any command with a Wrangler login isolated to this repo.
+# The OAuth token lives in .wrangler/home (gitignored), so it never touches
+# the global login in ~/Library/Preferences/.wrangler used by other projects.
+#
+#   ./cf npx wrangler login     # log in once, only for this project
+#   ./cf npx wrangler whoami
+#   ./cf npm run deploy
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export XDG_CONFIG_HOME="$ROOT/.wrangler/home"
+mkdir -p "$XDG_CONFIG_HOME"
+exec "$@"
